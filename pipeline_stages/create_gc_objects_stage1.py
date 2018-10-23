@@ -29,7 +29,7 @@ objects!
     ]
 
     outputs = [
-        ('populated_galaxy_cluster_output', HDFFile), 
+        ('populated_galaxy_cluster_objects', HDFFile), 
     ] # ehh... not sure how we'll want to store objects, but leaving
       # this as an HDFFile that we can un-concatenate if needed.
 

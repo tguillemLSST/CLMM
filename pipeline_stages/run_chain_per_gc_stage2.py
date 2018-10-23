@@ -20,7 +20,7 @@ likelihood of parameters on each cluster object.
     name = "run_chain_per_gc_stage2"
 
     inputs = [
-        ('galaxy_cluster_objects_input', HDFFile), # Leaving this as an
+        ('populated_galaxy_cluster_objects', HDFFile), # Leaving this as an
                                             # HDFFile we can perhaps
                                             # concatenate the data
                                             # into as a preprocessing
@@ -29,7 +29,7 @@ likelihood of parameters on each cluster object.
     ]
 
     outputs = [
-        ('chains_galaxy_cluster_output', HDFFile), 
+        ('galaxy_cluster_objects_with_chains', HDFFile), 
     ] # ehh... not sure how we'll want to store objects, but leaving
       # this as an HDFFile that we can un-concatenate if needed.
 
@@ -59,7 +59,7 @@ likelihood of parameters on each cluster object.
         gc_datadir = self.config['galaxy_cluster_data_dir']
         gc_filetype = self.config['galaxy_cluster_file_type']
 
-        input_file = self.open_input('galaxy_clusters_input')
+        input_file = self.open_input('populated_galaxy_clusters')
 
         # Check how many objects we are running on
         nclusters = self.get_num_clusters(input_file)

@@ -13,7 +13,7 @@ stages:
     - name: importance_sample_gc_collections_stage4
       nprocess: 1
 
-    - name: write_inference_outputs_stage5
+    - name: summarize_inference_outputs_stage5
       nprocess: 1
 
 output_dir: ./test_pipeline/outputs

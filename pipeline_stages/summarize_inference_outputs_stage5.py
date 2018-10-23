@@ -1,16 +1,16 @@
 from ceci import PipelineStage
 from descformats import TextFile, FitsFile, HDFFile, YamlFile
 
-class CreateGCCollectionsStage3(PipelineStage):
-    '''Third stage of the pipeline where we define the binning of for
-importance sampling.
+class SummarizeInferenceOutputsStage5(PipelineStage):
+    '''Fifth stage of the pipeline where we summarize the results of
+importance sampled chains per cluster collection.
 
-    The inputs are galaxy cluster data with individual chains per
-    cluster, and the outputs are the collections of cluster chains.
+    The inputs are importance sampled outputs per collection, and the
+    outputs are the summary statistic(s). e.g. most likely mass with
+    errorbars, concentration, noise levels, etc.
 
-    The pipeline loops through galaxy cluster objects and identifies
-    which collection they belong to.  Collections can be defined in
-    richness bins, true mass bins, etc.
+    The pipeline loops through the collections' outputs, and
+    summarizes.
 
     It can do this in parallel if needed.  We might want to move some
     of the functionality here (e.g. the I/O) into a general parent
@@ -18,10 +18,10 @@ importance sampling.
 
     '''
 
-    name = "create_gc_collections_stage3"
+    name = "summarize_inference_outputs_stage5"
 
     inputs = [
-        ('galaxy_cluster_objects_with_chains', HDFFile), # Leaving this as an
+        ('importance_sampling_results', HDFFile), # Leaving this as an
                                             # HDFFile we can perhaps
                                             # concatenate the data
                                             # into as a preprocessing
@@ -30,29 +30,23 @@ importance sampling.
     ]
 
     outputs = [
-        ('chains_in_collections', HDFFile), 
+        ('summarized_inference_outputs', HDFFile), 
     ] # ehh... not sure how we'll want to store objects, but leaving
       # this as an HDFFile that we can un-concatenate if needed.
 
     config_options = {
         'galaxy_cluster_data_dir': str,  # This parameter is required in the test/config.yaml file
         'galaxy_cluster_file_type': str, # This parameter is required in the test/config.yaml file
-        'num_collections': int, # This parameter is required in the test/config.yaml file
-        'subsample_rate': 1,   # This parameter will take the default value 1 if not specified
         }
-
-    def get_num_clusters(self, input_file) :
-        ''' Quick method to return number of galaxy clusters we are running on.'''
-        pass
 
     def run(self):
         '''
-        This should *just* deal with the loading of data and populating the galaxy cluster objects.
+        This summarizes importance sampling outputs per collection (e.g. bins) of clusters
         
         - Prepares the output HDF5 File
-        - Loads in the galaxy cluster objects
-        - Defines collections of galaxy clusters (e.g. binning)
-        - Writes the collections' chains to output
+        - Loads in the collections' importance sampled outputs
+        - Summarizes the importance sampling result
+        - Writes the summarized information to output
         - Closes the output file
 
         '''
@@ -60,10 +54,9 @@ importance sampling.
         gc_datadir = self.config['galaxy_cluster_data_dir']
         gc_filetype = self.config['galaxy_cluster_file_type']
 
-        input_file = self.open_input('galaxy_clusters_input')
+        input_file = self.open_input('importance_sampling_outputs')
 
         # Check how many objects we are running on
-        ngalaxyclusters = self.get_num_clusters(input_file)
         ncollections = self.config['num_collections']
 
         input_data = input_file.read()
@@ -81,15 +74,16 @@ importance sampling.
         # self.iterate_hdf(tag, group_name, cols, chunk_rows)
 
         chunk_rows = self.config['chunk_rows']
+
         # Loop through chunks of data, can use MPI here.
         for start, end, data in self.iterate_hdf(tag, group_name, cols, chunk_rows) :
-            print(f"Process {self.rank} reading in galaxy cluster objects with chains for rows {start}-{end}")
+            print(f"Process {self.rank} summarizing each importance sampled output for rows {start}-{end}")
 
-            # Populate galaxy cluster objects
-            chain_collections = self.populate_collections(data)
+            # Summarize
+            summarized_inference_data = self.summarize_inference_output(data)
 
             # Save this chunk of data to the output file
-            self.write_output(output_file, start, end, chain_collections)
+            self.write_output(output_file, start, end, summarized_inference_data)
         
 
         # Synchronize processors
@@ -99,9 +93,9 @@ importance sampling.
         # Finish
         output_file.close()
 
-    def populate_chains(self, data) :
+    def summarize_inference_output(self, data) :
         '''
-        Take in galaxy cluster data, collect the information needed to create collections (e.g. richness, true mass, etc.)
+        Take in results of importance sampling and summarize
         '''
 
         pass
