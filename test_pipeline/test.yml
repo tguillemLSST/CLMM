@@ -1,0 +1,30 @@
+modules: pipeline_stages
+
+stages:
+    - name: create_gc_objects_stage1
+      nprocess: 1
+
+    - name: run_chain_per_gc_stage2
+      nprocess: 1
+
+    - name: create_gc_collections_stage3
+      nprocess: 1
+
+    - name: importance_sample_gc_collections_stage4
+      nprocess: 1
+
+    - name: write_inference_outputs_stage5
+      nprocess: 1
+
+output_dir: ./test_pipeline/outputs
+
+inputs:
+    some_input_tag: test_pipeline/input_data.txt
+
+resume: False
+log_dir: ./test_pipeline/logs
+pipeline_log: ./test_pipeline/log.txt
+config: ./test_pipeline/config.yml
+
+
+launcher: local
