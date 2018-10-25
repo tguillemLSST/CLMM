@@ -29,7 +29,7 @@ likelihood of parameters on each cluster object.
     ]
 
     outputs = [
-        ('galaxy_cluster_objects_with_chains', HDFFile), 
+        ('galaxy_cluster_chains', HDFFile), 
     ] # ehh... not sure how we'll want to store objects, but leaving
       # this as an HDFFile that we can un-concatenate if needed.
 
@@ -84,10 +84,10 @@ likelihood of parameters on each cluster object.
             print(f"Process {self.rank} running chains on galaxy cluster objects for rows {start}-{end}")
 
             # Use manager to collect inferrer relevant data from galaxy cluster objects
-            inferrer_input = self.prepare_gc_data(data)
+            parameter_sampler_input = self.prepare_gc_data(data)
 
-            # Make inference per cluster
-            inferrer_output_chains = self.make_inference(inferrer_input)
+            # Sample parameters per cluster
+            parameter_sampler_output_chains = self.sample_parameters(parameter_sampler_input)
 
             # Save this chunk of data to the output file
             self.write_output(output_file, start, end, inferrer_output_chains)
@@ -107,9 +107,9 @@ likelihood of parameters on each cluster object.
 
         pass
 
-    def make_inference(self, inferrer_input) :
+    def sample_parameters(self, inferrer_input) :
         '''
-        Make inference per cluster
+        Sample parameters per cluster
         '''
 
         pass
