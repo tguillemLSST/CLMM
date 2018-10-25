@@ -30,10 +30,9 @@ importance sampling.
     ]
 
     outputs = [
-        ('chains_in_collections', HDFFile), 
-    ] # ehh... not sure how we'll want to store objects, but leaving
-      # this as an HDFFile that we can un-concatenate if needed.
-
+        ('collections_hash_table', HDFFile), 
+    ]
+    
     config_options = {
         'galaxy_cluster_data_dir': str,  # This parameter is required in the test/config.yaml file
         'galaxy_cluster_file_type': str, # This parameter is required in the test/config.yaml file
@@ -52,7 +51,7 @@ importance sampling.
         - Prepares the output HDF5 File
         - Loads in the galaxy cluster objects
         - Defines collections of galaxy clusters (e.g. binning)
-        - Writes the collections' chains to output
+        - Writes the collections hash table to output
         - Closes the output file
 
         '''
@@ -86,10 +85,10 @@ importance sampling.
             print(f"Process {self.rank} reading in galaxy cluster objects with chains for rows {start}-{end}")
 
             # Populate galaxy cluster objects
-            chain_collections = self.populate_collections(data)
+            collections_hash_table = self.populate_collections(data)
 
             # Save this chunk of data to the output file
-            self.write_output(output_file, start, end, chain_collections)
+            self.write_output(output_file, start, end, collections_hash_table)
         
 
         # Synchronize processors
@@ -99,7 +98,7 @@ importance sampling.
         # Finish
         output_file.close()
 
-    def populate_chains(self, data) :
+    def populate_collections(self, data) :
         '''
         Take in galaxy cluster data, collect the information needed to create collections (e.g. richness, true mass, etc.)
         '''

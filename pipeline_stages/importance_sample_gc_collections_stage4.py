@@ -21,12 +21,13 @@ each collection.
     name = "importance_sample_gc_collections_stage4"
 
     inputs = [
-        ('chains_in_collections', HDFFile), # Leaving this as an
+        ('collections_hash_table', HDFFile),# Leaving this as an
                                             # HDFFile we can perhaps
                                             # concatenate the data
                                             # into as a preprocessing
                                             # step external to the
                                             # pipeline.
+        ('galaxy_cluster_chains', HDFFile)
     ]
 
     outputs = [
@@ -44,9 +45,9 @@ each collection.
         This runs importance sampling on collections (e.g. bins) of chains per cluster
         
         - Prepares the output HDF5 File
-        - Loads in the collections of chains
+        - Loads in the chains and the hash for collections
         - Performs importance sampling
-        - Writes the collections' chains to output
+        - Writes the importance sampling chains and stats to output
         - Closes the output file
 
         '''
@@ -54,14 +55,17 @@ each collection.
         gc_datadir = self.config['galaxy_cluster_data_dir']
         gc_filetype = self.config['galaxy_cluster_file_type']
 
-        input_file = self.open_input('chains_in_collections')
-
+        input_chains_file = self.open_input('galaxy_cluster_chains')
+        input_hash_file = self.open_input('collections_hash_table')
+        
         # Check how many objects we are running on
         ncollections = self.config['num_collections']
 
-        input_data = input_file.read()
-        input_file.close()
-
+        input_chains_data = input_chains_file.read()
+        input_chains_file.close()
+        input_hash_data = input_hash_file.read()
+        input_hash_file.close()
+        
         # Prepare the output file
         output_file = self.prepare_output(ncollections)
 
@@ -77,7 +81,7 @@ each collection.
 
         # Loop through chunks of data, can use MPI here.
         for start, end, data in self.iterate_hdf(tag, group_name, cols, chunk_rows) :
-            print(f"Process {self.rank} reading in collections of chains for rows {start}-{end}")
+            print(f"Process {self.rank} reading in chains for rows {start}-{end}")
 
             # Importance sampling on each chain
             importance_sampling_output_data = self.importance_sample(data)
