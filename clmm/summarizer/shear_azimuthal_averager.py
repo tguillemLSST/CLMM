@@ -1,9 +1,8 @@
 #!/usr/bin/env python
 import numpy as np
-from astropy.cosmology import FlatLambdaCDM
 from astropy.table import Table
 from clmm.core import CLMMBase
-
+import pyccl as ccl
 
 class ShearAzimuthalAverager(CLMMBase):
     """
@@ -21,7 +20,7 @@ class ShearAzimuthalAverager(CLMMBase):
 
 
     """
-    def __init__(self, cl_dict, src_table):
+    def __init__(self, cl_dict, src_table, cosmo):
         """
         Parameters
         ----------
@@ -33,7 +32,7 @@ class ShearAzimuthalAverager(CLMMBase):
 
         self.cl_dict = cl_dict
         self.src_table = src_table
-
+        self.cosmo = cosmo # CCL cosmology object
         
     def compute_shear(self):
         """
@@ -70,8 +69,7 @@ class ShearAzimuthalAverager(CLMMBase):
             g2 = self.src_table['gamma2']
 
         self.theta = np.sqrt((ra_src-ra_cl)**2+(dec_src-dec_cl)**2)*np.pi/180.
-        cosmo = FlatLambdaCDM(H0=70, Om0=0.3)
-        self.phys_dist = self.theta * cosmo.angular_diameter_distance(z_cl).value
+        self.phys_dist = self.theta * ccl.comoving_angular_distance(self.cosmo, 1/(1+z_cl))/(1+z_cl)
 
         phi = np.arctan2(dec_src-dec_cl, -(ra_src-ra_cl))
         self.shear_t = - g1 * np.cos(2.0 * phi) - g2 * np.sin(2.0 * phi)
