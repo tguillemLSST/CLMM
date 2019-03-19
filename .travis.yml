@@ -28,7 +28,7 @@ install:
 
   # Other dependencies here:
   - pip install pylint
-  #- pip install pyccl
+  - pip install pyccl
   - pip install astropy
   - pip install scipy
   - pip install colossus==1.2.5
