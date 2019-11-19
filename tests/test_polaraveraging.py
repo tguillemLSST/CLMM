@@ -38,9 +38,10 @@ def test_compute_g_x():
     testing.assert_raises(ValueError, pa._compute_g_x, data[0,0], data[1], data[2])
     testing.assert_raises(ValueError, pa._compute_g_x, data[0], data[1,0], data[2])
     testing.assert_raises(ValueError, pa._compute_g_x, data[0], data[1], data[2,0])
-    testing.assert_raises(ValueError, pa._compute_g_x, data[0,0], data[1,0], data[2])
-    testing.assert_raises(ValueError, pa._compute_g_x, data[0], data[1,0], data[2,0])
-    testing.assert_raises(ValueError, pa._compute_g_x, data[0,0], data[1], data[2,0])
+
+    testing.assert_raises(ValueError, pa._compute_g_x, data[0,0:2], data[1], data[2])
+    testing.assert_raises(ValueError, pa._compute_g_x, data[0], data[1,0:2], data[2])
+    testing.assert_raises(ValueError, pa._compute_g_x, data[0], data[1], data[2,0:2])
     
     # test for input range
     testing.assert_raises(ValueError, pa._compute_g_x, 0.1, 0.1, -3.15)
@@ -68,10 +69,11 @@ def test_compute_g_t():
     testing.assert_raises(ValueError, pa._compute_g_t, data[0,0], data[1], data[2])
     testing.assert_raises(ValueError, pa._compute_g_t, data[0], data[1,0], data[2])
     testing.assert_raises(ValueError, pa._compute_g_t, data[0], data[1], data[2,0])
-    testing.assert_raises(ValueError, pa._compute_g_t, data[0,0], data[1,0], data[2])
-    testing.assert_raises(ValueError, pa._compute_g_t, data[0], data[1,0], data[2,0])
-    testing.assert_raises(ValueError, pa._compute_g_t, data[0,0], data[1], data[2,0])
-    
+
+    testing.assert_raises(ValueError, pa._compute_g_x, data[0,0:2], data[1], data[2])
+    testing.assert_raises(ValueError, pa._compute_g_x, data[0], data[1,0:2], data[2])
+    testing.assert_raises(ValueError, pa._compute_g_x, data[0], data[1], data[2,0:2]) 
+   
     # test for input range
     testing.assert_raises(ValueError, pa._compute_g_t, 0.1, 0.1, -3.15)
     testing.assert_raises(ValueError, pa._compute_g_t, 0.1, 0.1, 2.*np.pi+0.1)

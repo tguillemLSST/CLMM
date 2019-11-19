@@ -230,7 +230,12 @@ def _compute_g_t(g1, g2, phi):
         raise ValueError("Position angle should be in radians")
     if np.sum(phi>=2*np.pi) > 0:
         raise ValueError("Position angle should be in radians")
-
+    if (np.shape(g1) != np.shape(g2)):
+        raise ValueError("The lengths of shear1 and shear2 do not match.")
+    if (np.shape(g1) != np.shape(phi)):
+        raise ValueError("The lengths of shear1 and phi do not match.")
+    if (np.shape(g2) != np.shape(phi)):
+        raise ValueError("The lengths of shear2 and phi do not match.")
     g_t = - (g1*np.cos(2*phi) + g2*np.sin(2*phi))
     return g_t
 
@@ -263,7 +268,12 @@ def _compute_g_x(g1, g2, phi):
         raise ValueError("Position angle should be in radians")
     if np.sum(phi>=2*np.pi) > 0:
         raise ValueError("Position angle should be in radians")
-
+    if (np.shape(g1) != np.shape(g2)):
+        raise ValueError("The lengths of shear1 and shear2 do not match.")
+    if (np.shape(g1) != np.shape(phi)):
+        raise ValueError("The lengths of shear1 and phi do not match.")
+    if (np.shape(g2) != np.shape(phi)):
+        raise ValueError("The lengths of shear2 and phi do not match.")
     g_x = - g1 * np.sin(2*phi) + g2 *np.cos(2*phi)
     return g_x
 
