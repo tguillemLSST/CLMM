@@ -191,6 +191,19 @@ def _compute_tangential_shear(shear1, shear2, phi):
 
     For extended descriptions of parameters, see `compute_shear()` documentation.
     """
+    if type(shear1) != type(shear2):
+        raise ValueError("shear1 and shear2 should both be array-like of same length or float-like")
+    if type(shear1) != type(phi):
+        raise ValueError("shear1 and position angle should both be array-like of same length or float-like")
+    if type(shear2) != type(phi):
+        raise ValueError("shear2 and position angle should both be array-like of same length or float-like")
+    if (np.shape(shear1) != np.shape(shear2)):
+        raise ValueError("The lengths of shear1 and shear2 do not match.")
+    if (np.shape(shear1) != np.shape(phi)):
+        raise ValueError("The lengths of shear1 and phi do not match.")
+    if (np.shape(shear2) != np.shape(phi)):
+        raise ValueError("The lengths of shear2 and phi do not match.")
+
     return - (shear1 * np.cos(2.*phi) + shear2 * np.sin(2.*phi))
 
 
@@ -205,8 +218,19 @@ def _compute_cross_shear(shear1, shear2, phi):
 
     For extended descriptions of parameters, see `compute_shear()` documentation.
     """
-    return shear1 * np.sin(2.*phi) - shear2 * np.cos(2.*phi)
+        raise ValueError("shear1 and shear2 should both be array-like of same length or float-like")
+    if type(shear1) != type(phi):
+        raise ValueError("shear1 and position angle should both be array-like of same length or float-like")
+    if type(shear2) != type(phi):
+        raise ValueError("shear2 and position angle should both be array-like of same length or float-like")
+    if (np.shape(shear1) != np.shape(shear2)):
+        raise ValueError("The lengths of shear1 and shear2 do not match.")
+    if (np.shape(shear1) != np.shape(phi)):
+        raise ValueError("The lengths of shear1 and phi do not match.")
+    if (np.shape(shear2) != np.shape(phi)):
+        raise ValueError("The lengths of shear2 and phi do not match.")
 
+    return shear1 * np.sin(2.*phi) - shear2 * np.cos(2.*phi)
 
 def make_shear_profile(cluster, angsep_units, bin_units, bins=10, cosmo=None,
                        add_to_cluster=True):

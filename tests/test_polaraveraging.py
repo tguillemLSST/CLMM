@@ -38,6 +38,12 @@ def test_compute_cross_shear():
     testing.assert_allclose(pa._compute_cross_shear(0., 100., np.pi/4.), 0.0,atol=atol)
     testing.assert_allclose(pa._compute_cross_shear(0., 0., 0.3), 0.,atol=atol)
 
+    data = np.array([[0.01, 0.02, 0.01], [0.01, 0.02, 0.03],[0.1, 1.2, 3.]])
+
+    testing.assert_raises(ValueError, pa._compute_cross_shear, data[0,0:2], data[1], data[2])
+    testing.assert_raises(ValueError, pa._compute_cross_shear, data[0], data[1,0:2], data[2])
+    testing.assert_raises(ValueError, pa._compute_cross_shear, data[0], data[1], data[2,0:2])
+
 
 def test_compute_tangential_shear():
     shear1, shear2, phi = 0.15, 0.08, 0.52
@@ -57,7 +63,18 @@ def test_compute_tangential_shear():
     testing.assert_almost_equal(pa._compute_tangential_shear(0., 100., np.pi/4.), -100.0)
     testing.assert_almost_equal(pa._compute_tangential_shear(0., 0., 0.3), 0.)
 
-    
+    data = np.array([[0.01, 0.02, 0.01], [0.01, 0.02, 0.03],[0.1, 1.2, 3.]])
+
+    testing.assert_raises(ValueError, pa._compute_tangential_shear, data[0,0:2], data[1], data[2])
+    testing.assert_raises(ValueError, pa._compute_tangential_shear, data[0], data[1,0:2], data[2])
+    testing.assert_raises(ValueError, pa._compute_tangential_shear, data[0], data[1], data[2,0:2])
+
+
+
+
+
+
+
 def test_compute_lensing_angles_flatsky():
     ra_l, dec_l = 161., 65.
     ra_s, dec_s = np.array([-355., 355.]), np.array([-85., 85.])
