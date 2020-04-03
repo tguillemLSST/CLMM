@@ -130,7 +130,7 @@ def get_reduced_shear_from_convergence(shear, convergence):
     return reduced_shear
 
 
-def get_3d_density(r3d, mdelta, cdelta, z_cl, cosmo, delta_mdef=200, halo_profile_model='nfw'):
+def get_3d_density(r3d, mdelta, cdelta, z_cl, cosmo, delta_mdef=200, halo_profile_model='nfw', alpha=None):
     r"""Retrieve the 3d density :math:`\rho(r)`.
 
     Profiles implemented so far are:
@@ -156,6 +156,9 @@ def get_3d_density(r3d, mdelta, cdelta, z_cl, cosmo, delta_mdef=200, halo_profil
         Profile model parameterization, with the following supported options:
 
             `nfw` (default)
+            `einasto`
+    alpha : float, optional
+        Index for the Einasto parametrisation
 
     Returns
     -------
@@ -173,13 +176,17 @@ def get_3d_density(r3d, mdelta, cdelta, z_cl, cosmo, delta_mdef=200, halo_profil
 
     if halo_profile_model.lower() == 'nfw':
         rho = ct.density.rho_nfw_at_r(r3d, mdelta, cdelta, omega_m_transformed, delta=delta_mdef)
+    elif halo_profile_model.lower() == 'einasto':
+        if alpha is None:
+            raise ValueError("The index alpha of the Einasto profile has not been defined")
+        rho = ct.density.rho_einasto_at_r(r3d, mdelta, cdelta, alpha, omega_m_transformed, delta=delta_mdef )
     else:
         raise ValueError(f"Profile model {halo_profile_model} not currently supported")
     return rho
 
 
 def predict_surface_density(r_proj, mdelta, cdelta, z_cl, cosmo, delta_mdef=200,
-                            halo_profile_model='nfw'):
+                            halo_profile_model='nfw', alpha=None):
     r""" Computes the surface mass density
 
     .. math::
@@ -223,13 +230,22 @@ def predict_surface_density(r_proj, mdelta, cdelta, z_cl, cosmo, delta_mdef=200,
     if halo_profile_model.lower() == 'nfw':
         sigma = ct.deltasigma.Sigma_nfw_at_R(r_proj, mdelta, cdelta, omega_m_transformed,
                                              delta=delta_mdef)
+    elif halo_profile_model.lower() == 'einasto':
+        if alpha is None:
+            raise ValueError("The index alpha of the Einasto profile has not been defined")
+        r3d = np.logspace(np.log10(r_proj[0])-1 , np.log10(r_proj[-1])+1, 1000)
+        rho = get_3d_density(r3d, mdelta, cdelta, z_cl, cosmo, delta_mdef=delta_mdef, halo_profile_model=halo_profile_model, alpha=alpha)
+        rhocrit_mks = 3.*100.*100./(8.*np.pi*const.GNEWT.value)
+        rhocrit_cosmo = rhocrit_mks * 1000. * 1000. * const.PC_TO_METER.value * 1.e6 / const.SOLAR_MASS.value
+        xi_einasto = rho/(omega_m_transformed*rhocrit_cosmo)
+        sigma = ct.deltasigma.Sigma_at_R(r_proj, r3d, xi_einasto, mdelta, cdelta, omega_m_transformed)
     else:
         raise ValueError(f"Profile model {halo_profile_model} not currently supported")
     return sigma
 
 
 def predict_excess_surface_density(r_proj, mdelta, cdelta, z_cl, cosmo, delta_mdef=200,
-                                   halo_profile_model='nfw'):
+                                   halo_profile_model='nfw', alpha=None):
     r""" Computes the excess surface density
 
     .. math::
@@ -268,7 +284,7 @@ def predict_excess_surface_density(r_proj, mdelta, cdelta, z_cl, cosmo, delta_md
     omega_m = cosmo['Omega_c'] + cosmo['Omega_b']
     omega_m_transformed = _patch_zevolution_cluster_toolkit_rho_m(omega_m, z_cl)
 
-    sigma_r_proj = np.logspace(-3, 4, 1000)
+    sigma_r_proj = np.logspace(np.log10(r_proj[0])-1 , np.log10(r_proj[-1])+1, 1000)
 
     if halo_profile_model.lower() == 'nfw':
         sigma = ct.deltasigma.Sigma_nfw_at_R(sigma_r_proj, mdelta, cdelta,
@@ -277,6 +293,12 @@ def predict_excess_surface_density(r_proj, mdelta, cdelta, z_cl, cosmo, delta_md
         deltasigma = ct.deltasigma.DeltaSigma_at_R(r_proj, sigma_r_proj,
                                                    sigma, mdelta, cdelta,
                                                    omega_m_transformed, delta=delta_mdef)
+
+    elif halo_profile_model.lower() == 'einasto':
+        if alpha is None:
+            raise ValueError("The index alpha of the Einasto profile has not been defined")
+        sigma = predict_surface_density(sigma_r_proj, mdelta, cdelta, z_cl, cosmo, delta_mdef, halo_profile_model=halo_profile_model, alpha=alpha)
+        deltasigma = ct.deltasigma.Sigma_at_R(r_proj, sigma_r_proj, sigma, mdelta, cdelta, omega_m_transformed)
     else:
         raise ValueError(f"Profile model {halo_profile_model} not currently supported")
     return deltasigma
@@ -362,7 +384,7 @@ def get_critical_surface_density(cosmo, z_cluster, z_source):
 
 
 def predict_tangential_shear(r_proj, mdelta, cdelta, z_cluster, z_source, cosmo, delta_mdef=200,
-                             halo_profile_model='nfw', z_src_model='single_plane'):
+                             halo_profile_model='nfw', z_src_model='single_plane', alpha=None):
     r"""Computes the tangential shear
 
     .. math::
@@ -411,9 +433,12 @@ def predict_tangential_shear(r_proj, mdelta, cdelta, z_cluster, z_source, cosmo,
     z_src_models using :math:`\beta_s`.
     Need to figure out if we want to raise exceptions rather than errors here?
     """
+    if halo_profile_model.lower() == 'einasto' and alpha is None:
+        raise ValueError("The index alpha of the Einasto profile has not been defined")
+
     delta_sigma = predict_excess_surface_density(r_proj, mdelta, cdelta, z_cluster, cosmo,
                                                  delta_mdef=delta_mdef,
-                                                 halo_profile_model=halo_profile_model)
+                                                 halo_profile_model=halo_profile_model, alpha=alpha)
 
     if z_src_model == 'single_plane':
         sigma_c = get_critical_surface_density(cosmo, z_cluster, z_source)
@@ -430,7 +455,7 @@ def predict_tangential_shear(r_proj, mdelta, cdelta, z_cluster, z_source, cosmo,
 
 
 def predict_convergence(r_proj, mdelta, cdelta, z_cluster, z_source, cosmo, delta_mdef=200,
-                        halo_profile_model='nfw', z_src_model='single_plane'):
+                        halo_profile_model='nfw', z_src_model='single_plane', alpha=None):
     r"""Computes the mass convergence
 
     .. math::
@@ -476,8 +501,12 @@ def predict_convergence(r_proj, mdelta, cdelta, z_cluster, z_source, cosmo, delt
     -----
     Need to figure out if we want to raise exceptions rather than errors here?
     """
+
+    if halo_profile_model.lower() == 'einasto' and alpha is None:
+        raise ValueError("The index alpha of the Einasto profile has not been defined")
+
     sigma = predict_surface_density(r_proj, mdelta, cdelta, z_cluster, cosmo,
-                                    delta_mdef=delta_mdef, halo_profile_model=halo_profile_model)
+                                    delta_mdef=delta_mdef, halo_profile_model=halo_profile_model, alpha=alpha)
 
     if z_src_model == 'single_plane':
         sigma_c = get_critical_surface_density(cosmo, z_cluster, z_source)
@@ -495,7 +524,7 @@ def predict_convergence(r_proj, mdelta, cdelta, z_cluster, z_source, cosmo, delt
 
 def predict_reduced_tangential_shear(r_proj, mdelta, cdelta, z_cluster, z_source, cosmo,
                                      delta_mdef=200, halo_profile_model='nfw',
-                                     z_src_model='single_plane'):
+                                     z_src_model='single_plane', alpha=None):
     r"""Computes the reduced tangential shear :math:`g_t = \frac{\gamma_t}{1-\kappa}`.
 
     Parameters
@@ -532,13 +561,16 @@ def predict_reduced_tangential_shear(r_proj, mdelta, cdelta, z_cluster, z_source
     Notes
     -----
     Need to figure out if we want to raise exceptions rather than errors here?
-    """
+    """   
+    if halo_profile_model.lower() == 'einasto' and alpha is None:
+        raise ValueError("The index alpha of the Einasto profile has not been defined")
+
     if z_src_model == 'single_plane':
         kappa = predict_convergence(r_proj, mdelta, cdelta, z_cluster, z_source, cosmo, delta_mdef,
                                     halo_profile_model,
-                                    z_src_model)
+                                    z_src_model, alpha=alpha)
         gamma_t = predict_tangential_shear(r_proj, mdelta, cdelta, z_cluster, z_source, cosmo,
-                                           delta_mdef, halo_profile_model, z_src_model)
+                                           delta_mdef, halo_profile_model, z_src_model, alpha=alpha)
         red_tangential_shear = gamma_t / (1 - kappa)
     # elif z_src_model == 'known_z_src': # Discrete case
     #     raise NotImplementedError('Need to implemnt Beta_s functionality, or average' +
