@@ -212,6 +212,9 @@ def predict_surface_density(r_proj, mdelta, cdelta, z_cl, cosmo, delta_mdef=200,
         Profile model parameterization, with the following supported options:
 
             `nfw` (default)
+            `Einasto`
+    alpha : float, optional
+        Index for the Einasto parametrisation
 
     Returns
     -------
@@ -274,6 +277,9 @@ def predict_excess_surface_density(r_proj, mdelta, cdelta, z_cl, cosmo, delta_md
         Profile model parameterization, with the following supported options:
 
             `nfw` (default)
+            `Einasto`
+    alpha : float, optional
+        Index for the Einasto parametrisation
 
     Returns
     -------
@@ -414,12 +420,16 @@ def predict_tangential_shear(r_proj, mdelta, cdelta, z_cluster, z_source, cosmo,
     halo_profile_model : str, optional
         Profile model parameterization, with the following supported options:
         `nfw` (default) - [insert citation here]
+        `Einasto`
+    alpha : float, optional
+        Index for the Einasto parametrisation
     z_src_model : str, optional
         Source redshift model, with the following supported options:
         `single_plane` (default) - all sources at one redshift
         `known_z_src` - known individual source galaxy redshifts e.g. discrete case
         `z_src_distribution` - known source redshift distribution e.g. continuous
         case requiring integration.
+
 
     Returns
     -------
@@ -485,6 +495,10 @@ def predict_convergence(r_proj, mdelta, cdelta, z_cluster, z_source, cosmo, delt
     halo_profile_model : str, optional
         Profile model parameterization, with the following supported options:
         `nfw` (default) - [insert citation here]
+        `Einasto`
+    alpha : float, optional
+        Index for the Einasto parametrisation
+
     z_src_model : str, optional
         Source redshift model, with the following supported options:
         `single_plane` (default) - all sources at one redshift
@@ -546,6 +560,10 @@ def predict_reduced_tangential_shear(r_proj, mdelta, cdelta, z_cluster, z_source
     halo_profile_model : str, optional
         Profile model parameterization, with the following supported options:
         `nfw` (default) - [insert citation here]
+    `Einasto`
+    alpha : float, optional
+        Index for the Einasto parametrisation
+
     z_src_model : str, optional
         Source redshift model, with the following supported options:
         `single_plane` (default) - all sources at one redshift
