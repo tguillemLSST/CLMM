@@ -235,7 +235,7 @@ def predict_surface_density(r_proj, mdelta, cdelta, z_cl, cosmo, delta_mdef=200,
     elif halo_profile_model.lower() == 'einasto':
         if alpha is None:
             raise ValueError("The index alpha of the Einasto profile has not been defined")
-        r3d = np.logspace(np.log10(r_proj[0])-1 , np.log10(r_proj[-1])+1, 1000)
+        r3d = np.logspace(np.log10(np.min(r_proj))-1 , np.log10(np.max(r_proj))+1, len(r_proj)*20)
         rho = get_3d_density(r3d, mdelta, cdelta, z_cl, cosmo, delta_mdef=delta_mdef, halo_profile_model=halo_profile_model, alpha=alpha)
         rhocrit_mks = 3.*100.*100./(8.*np.pi*const.GNEWT.value)
         rhocrit_cosmo = rhocrit_mks * 1000. * 1000. * const.PC_TO_METER.value * 1.e6 / const.SOLAR_MASS.value
@@ -293,8 +293,8 @@ def predict_excess_surface_density(r_proj, mdelta, cdelta, z_cl, cosmo, delta_md
         raise ValueError(f"Rmin = {np.min(r_proj):.2e} Mpc/h! This value is too small and may cause computational issues.")
 
     # Computing sigma on a larger range than the radial range requested
-    sigma_r_proj = np.logspace(np.log10(np.min(r_proj))-1, np.log10(np.max(r_proj))+1, len(r_proj)*10)
-    
+    sigma_r_proj = np.logspace(np.log10(np.min(r_proj))-1, np.log10(np.max(r_proj))+1, len(r_proj)*20)
+   
     if halo_profile_model.lower() == 'nfw':
         sigma = ct.deltasigma.Sigma_nfw_at_R(sigma_r_proj, mdelta, cdelta,
                                              omega_m_transformed, delta=delta_mdef)
@@ -306,6 +306,7 @@ def predict_excess_surface_density(r_proj, mdelta, cdelta, z_cl, cosmo, delta_md
     elif halo_profile_model.lower() == 'einasto':
         if alpha is None:
             raise ValueError("The index alpha of the Einasto profile has not been defined")
+        
         sigma = predict_surface_density(sigma_r_proj, mdelta, cdelta, z_cl, cosmo, delta_mdef, halo_profile_model=halo_profile_model, alpha=alpha)
         deltasigma = ct.deltasigma.Sigma_at_R(r_proj, sigma_r_proj, sigma, mdelta, cdelta, omega_m_transformed)
     else:
