@@ -319,9 +319,6 @@ def predict_excess_surface_density(r_proj, mdelta, cdelta, z_cl, cosmo, delta_md
         sigma = ct.deltasigma.Sigma_at_R(sigma_r_proj, r3d, integrand, mdelta, cdelta, omega_m_transformed)
         deltasigma = ct.deltasigma.DeltaSigma_at_R(r_proj, sigma_r_proj, sigma, mdelta, cdelta, omega_m_transformed)
            
-#         print(np.min(sigma_r_proj),np.max(sigma_r_proj),len(sigma_r_proj))
-#         sigma = predict_surface_density(sigma_r_proj, mdelta, cdelta, z_cl, cosmo, delta_mdef, halo_profile_model=halo_profile_model, alpha=alpha)
-#         deltasigma = ct.deltasigma.Sigma_at_R(r_proj, sigma_r_proj, sigma, mdelta, cdelta, omega_m_transformed)
     else:
         raise ValueError(f"Profile model {halo_profile_model} not currently supported")
     return deltasigma
