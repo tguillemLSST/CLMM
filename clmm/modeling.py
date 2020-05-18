@@ -109,7 +109,28 @@ def _get_z_from_a(scale_factor):
         raise ValueError(f"Cannot convert invalid scale factor a > 1 to redshift")
     return 1. / scale_factor - 1.
 
+def _assert_correct_type_ct(a):
+    """ Convert the argument to a type compatible with cluster_toolkit
 
+    cluster_toolkit does not handle correctly scalar arguments that are
+    not float or numpy array and others that contain non-float64 elements. 
+    It only convert lists to the correct type. To circumvent this we 
+    pre-convert all arguments going to cluster_toolkit to the appropriated
+    types.    
+
+    Parameters
+    ----------
+    a : array_like or scalar
+
+    Returns
+    -------
+    scale_factor : array_like
+        Scale factor
+    """
+    if np.isscalar (a):
+        return float (a)
+    else:
+        return np.array(a).astype (np.float64, order='C', copy=False)
 
 def get_reduced_shear_from_convergence(shear, convergence):
     """ Calculates reduced shear from shear and convergence
@@ -172,7 +193,7 @@ def get_3d_density(r3d, mdelta, cdelta, z_cl, cosmo, delta_mdef=200, halo_profil
     omega_m_transformed = _patch_zevolution_cluster_toolkit_rho_m(omega_m, z_cl)
 
     if halo_profile_model.lower() == 'nfw':
-        rho = ct.density.rho_nfw_at_r(r3d, mdelta, cdelta, omega_m_transformed, delta=delta_mdef)
+        rho = ct.density.rho_nfw_at_r(_assert_correct_type_ct(r3d), mdelta, cdelta, omega_m_transformed, delta=delta_mdef)
     else:
         raise ValueError(f"Profile model {halo_profile_model} not currently supported")
     return rho
@@ -221,7 +242,7 @@ def predict_surface_density(r_proj, mdelta, cdelta, z_cl, cosmo, delta_mdef=200,
     omega_m_transformed = _patch_zevolution_cluster_toolkit_rho_m(omega_m, z_cl)
 
     if halo_profile_model.lower() == 'nfw':
-        sigma = ct.deltasigma.Sigma_nfw_at_R(r_proj, mdelta, cdelta, omega_m_transformed,
+        sigma = ct.deltasigma.Sigma_nfw_at_R(_assert_correct_type_ct(r_proj), mdelta, cdelta, omega_m_transformed,
                                              delta=delta_mdef)
     else:
         raise ValueError(f"Profile model {halo_profile_model} not currently supported")
@@ -274,7 +295,7 @@ def predict_excess_surface_density(r_proj, mdelta, cdelta, z_cl, cosmo, delta_md
         sigma = ct.deltasigma.Sigma_nfw_at_R(sigma_r_proj, mdelta, cdelta,
                                              omega_m_transformed, delta=delta_mdef)
         # ^ Note: Let's not use this naming convention when transfering ct to ccl....
-        deltasigma = ct.deltasigma.DeltaSigma_at_R(r_proj, sigma_r_proj,
+        deltasigma = ct.deltasigma.DeltaSigma_at_R(_assert_correct_type_ct(r_proj), sigma_r_proj,
                                                    sigma, mdelta, cdelta,
                                                    omega_m_transformed, delta=delta_mdef)
     else:
