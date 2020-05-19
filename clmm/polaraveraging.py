@@ -9,6 +9,7 @@ import numpy as np
 from astropy.table import Table
 from .utils import compute_radial_averages, make_bins, convert_units
 from .galaxycluster import GalaxyCluster
+from .modeling import get_critical_surface_density
 
 # def _astropy_to_CCL_cosmo_object(astropy_cosmology_object): # 7481794
 #     """Generates a ccl cosmology object from an GCR or astropy cosmology object.
@@ -224,15 +225,23 @@ def compute_deltasigma(cluster=None, ra_lens=None, z_lens=None, dec_lens=None, r
         Cross shear for each source galaxy
     """
     
-     angsep, tangential_shear, cross_shear = compute_shear(cluster, ra_lens, dec_lens, 
+    angsep, tangential_shear, cross_shear = compute_shear(cluster, ra_lens, dec_lens, 
                                                            ra_source_list,dec_source_list, 
-                                                           shear1, shear2, geometry='flat',
+                                                           shear1, shear2, geometry,
                                                            add_to_cluster)        
             
+    
+    
     if cluster is not None:
         if 'z' not in cluster.galcat.columns:
             raise TypeError('GalaxyCluster\'s galaxy catalog missing the redshift column.' +\
                             'Cannot compute DeltaSigma')
+        ra_lens, dec_lens = cluster.ra, cluster.dec
+        ra_source_list, dec_source_list = cluster.galcat['ra'], cluster.galcat['dec']
+        shear1, shear2 = cluster.galcat['e1'], cluster.galcat['e2']
+        z_lens = cluster.z
+        z_source_list = cluster.galcat['z']
+ 
 
     # If a cluster object is not specified, we require all of these inputs
     elif any(t_ is None for t_ in (ra_lens, dec_lens, z_lens, 
@@ -243,7 +252,7 @@ def compute_deltasigma(cluster=None, ra_lens=None, z_lens=None, dec_lens=None, r
                         'of the sources.')
 
     # If there is only 1 source, make sure everything is a scalar
-    if all(not hasattr(t_, '__len__') for t_ in [ra_source_list, dec_source_list, shear1, shear2]):
+    if all(not hasattr(t_, '__len__') for t_ in [ra_source_list, dec_source_list, shear1, shear2, z_lens, z_source_list]):
         pass
     # Otherwise, check that the length of all of the inputs match
     elif not all(len(t_) == len(ra_source_list) for t_ in [z_source_list]):
@@ -251,15 +260,15 @@ def compute_deltasigma(cluster=None, ra_lens=None, z_lens=None, dec_lens=None, r
                         'positions and redshifts')
 
     Sigma_c = get_critical_surface_density(cosmo, z_lens, z_source_list)
-    DeltaSigma_t = tangential_shear / Sigma_c
-    DeltaSigma_x = cross_shear / Sigma_c
+    DeltaSigma_t = tangential_shear * Sigma_c
+    DeltaSigma_x = cross_shear * Sigma_c
 
     if add_to_cluster:
-        cluster.galcat['DeltaSigma_t'] = DeltaSigma_t
-        cluster.galcat['DeltaSigma_x'] = DeltaSigma_x
-        cluster.galcat['Sigma_c'] = Sigma_c
+        cluster.galcat['DeltaSigmat'] = DeltaSigma_t
+        cluster.galcat['DeltaSigmax'] = DeltaSigma_x
+        cluster.galcat['Sigmac'] = Sigma_c
         
-    return angsep, DeltaSigma_t, DeltaSigma_x
+    return angsep, DeltaSigma_t, DeltaSigma_x, Sigma_c
 
 
 def _compute_lensing_angles_flatsky(ra_lens, dec_lens, ra_source_list, dec_source_list):
@@ -428,6 +437,110 @@ def make_shear_profile(cluster, angsep_units, bin_units, bins=10, cosmo=None,
     return profile_table
 
 
+def make_deltasigma_profile(cluster, angsep_units, bin_units, bins=10, cosmo=None,
+                       add_to_cluster=True, include_empty_bins=False, gal_ids_in_bins=False):
+    r"""Compute the shear profile of the cluster
+
+    We assume that the cluster object contains information on the cross and
+    tangential shears and angular separation of the source galaxies
+
+    This function can be called in two ways using an instance of GalaxyCluster
+
+    1. Pass an instance of GalaxyCluster into the function::
+
+        make_shear_profile(cluster, 'radians', 'radians')
+
+    2. Call it as a method of a GalaxyCluster instance::
+
+        cluster.make_shear_profile('radians', 'radians')
+
+    Parameters
+    ----------
+    cluster : GalaxyCluster
+        Instance of GalaxyCluster that contains the cross and tangential shears of
+        each source galaxy in its `galcat`
+    angsep_units : str
+        Units of the calculated separation of the source galaxies
+        Allowed Options = ["radians"]
+    bin_units : str
+        Units to use for the radial bins of the shear profile
+        Allowed Options = ["radians", deg", "arcmin", "arcsec", kpc", "Mpc"]
+    bins : array_like, optional
+        User defined bins to use for the shear profile. If a list is provided, use that as
+        the bin edges. If a scalar is provided, create that many equally spaced bins between
+        the minimum and maximum angular separations in bin_units. If nothing is provided,
+        default to 10 equally spaced bins.
+    cosmo: dict, optional
+        Cosmology parameters to convert angular separations to physical distances
+    add_to_cluster: bool, optional
+        Attach the profile to the cluster object as `cluster.profile`
+    include_empty_bins: bool, optional
+        Also include empty bins in the returned table
+    gal_ids_in_bins: bool, optional
+        Also include the list of galaxies ID belonging to each bin in the returned table
+
+    Returns
+    -------
+    profile : astropy.table.Table
+        Output table containing the radius grid points, the tangential and cross shear profiles
+        on that grid, and the errors in the two shear profiles. The errors are defined as the
+        standard errors in each bin.
+    """
+    if not all([t_ in cluster.galcat.columns for t_ in ('DeltaSigmat', 'DeltaSigmax', 'theta')]):
+        raise TypeError('DeltaSigma information is missing in galaxy catalog must have tangential' +\
+                        'and cross DeltaSigma (DeltaSigmat,DeltaSigmax). Run compute_deltasigma first!')
+    if 'z' not in cluster.galcat.columns:
+        raise TypeError('Missing galaxy redshifts!')
+    
+    # Check to see if we need to do a unit conversion
+    if angsep_units is not bin_units:
+        source_seps = convert_units(cluster.galcat['theta'], angsep_units, bin_units,
+                                    redshift=cluster.z, cosmo=cosmo)
+    else:
+        source_seps = cluster.galcat['theta']
+
+    # Make bins if they are not provided
+    if not hasattr(bins, '__len__'):
+        bins = make_bins(np.min(source_seps), np.max(source_seps), bins)
+
+    # Compute the binned average shears and associated errors
+    r_avg, gt_avg, gt_err, nsrc, binnumber = compute_radial_averages(
+        source_seps, cluster.galcat['DeltaSigmat'].data, xbins=bins, error_model='std/sqrt_n')
+    r_avg, gx_avg, gx_err, _, _ = compute_radial_averages(
+        source_seps, cluster.galcat['DeltaSigmax'].data, xbins=bins, error_model='std/sqrt_n')
+    r_avg, z_avg, z_err, _, _ = compute_radial_averages(
+        source_seps, cluster.galcat['z'].data, xbins=bins, error_model='std/sqrt_n')
+
+    # Make out table
+    profile_table = Table([bins[:-1], r_avg, bins[1:], gt_avg, gt_err, gx_avg, gx_err,
+                            z_avg, z_err, nsrc],
+                            names=('radius_min', 'radius', 'radius_max', 'DeltaSigmat', 'DeltaSigmat_err',
+                            'DeltaSigmax', 'DeltaSigmax_err', 'z', 'z_err', 'n_src'))
+    # add galaxy IDs
+    if gal_ids_in_bins:
+        if 'id' not in cluster.galcat.columns:
+            raise TypeError('Missing galaxy IDs!')
+        profile_table['gal_id'] = [list(cluster.galcat['id'][binnumber==i+1])
+                                    for i in np.arange(len(r_avg))]
+
+    # return empty bins?
+    if not include_empty_bins:
+        profile_table = profile_table[profile_table['n_src'] > 1]
+
+    # Add metadata to profile_table
+    profile_table.meta['cosmo'] = cosmo
+    profile_table.meta['bin_units'] = bin_units
+
+    if add_to_cluster:
+        cluster.DSprofile = profile_table
+        cluster.DSprofile_bin_units = bin_units
+
+    return profile_table
+
+
+
 # Monkey patch functions onto Galaxy Cluster object
 GalaxyCluster.compute_shear = compute_shear
+GalaxyCluster.compute_deltasigma = compute_deltasigma
 GalaxyCluster.make_shear_profile = make_shear_profile
+GalaxyCluster.make_deltasigma_profile = make_deltasigma_profile
