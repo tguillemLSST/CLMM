@@ -45,3 +45,26 @@ These are also pip installable,::
   pip install pytest sphinx sphinx_rtd_theme
 
 Note, the last item, sphinx_rtd_theme is to make the docs.
+
+*********************************************************
+Alternative installation using the conda desc environment
+*********************************************************
+
+This installation requires to clone the `desc conda environment <https://github.com/LSSTDESC/desc-python/wiki/Add-Your-Own-Packages-to-the-desc-python-Environment>`_ It should work both at NERSC and CC-IN2P3
+In order to allow the addition of new packages in the cloned environment, one may have to add the following entries into the `$HOME/.condarc` file::
+
+  pkgs_dirs:
+    - your_home_directory/.conda/pkgs
+
+Once the new cloned environment is created and activated one has to do the following::
+
+  conda install -c conda-forge numcosmo
+  
+  git clone https://github.com/tmcclintock/cluster_toolkit.git
+  cd cluster_toolkit
+  python setup.py install
+
+  git clone https://github.com/LSSTDESC/CLMM.git -b issue/282/modeling_structure CLMM_282
+  cd CLMM_282
+  python setup.py install
+
