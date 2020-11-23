@@ -1,5 +1,6 @@
 # CLMM Cosmology object abstract superclass
 import numpy as np
+from .constants import Constants as const
 
 
 class CLMMCosmology:
@@ -233,3 +234,34 @@ class CLMMCosmology:
             Distances in radians
         """
         return dist1/self.eval_da(redshift)
+
+    def eval_hubble_normalized(self, z):
+        r"""Hubble parameter normalized by H0
+
+        Parameters
+        ----------
+        z: float, array
+            Redshift
+
+        Returns
+        -------
+        float, array
+            Dimention less hubble parameter
+        """
+        raise NotImplementedError
+
+    def critical_density(self, z):
+        r"""Critical density of the Universe
+
+        Parameters
+        ----------
+        z: float, array
+            Redshift
+
+        Returns
+        -------
+        float
+            Critical density of the Universe in units of :math:`M_\odot\ Mpc^{-3}`
+        """
+        rho_c_0 = 3e10*const.PC_TO_METER.value*self['h']**2/(8*np.pi*const.GNEWT_SOLAR_MASS.value)
+        return rho_c_0*self.eval_hubble_normalized(z)**2
